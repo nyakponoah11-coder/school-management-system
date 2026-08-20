@@ -57,8 +57,7 @@ let currentClassId = null;
 async function addStudent(classId = null){
   const fullName = prompt("Student full name:");
   if(!fullName?.trim()) return;
-  const studentId = prompt("Student ID:");
-  if(!studentId?.trim()) return;
+  const studentId = prompt("Student ID (optional):");
   const gender = prompt("Gender (Male, Female or Other):");
   const admissionDate = prompt("Enrollment date (YYYY-MM-DD, optional):") || null;
   try{
@@ -66,7 +65,7 @@ async function addStudent(classId = null){
     const className = classId ? null : prompt(`Class name (optional):\n${classes.map(item => item.name).join(", ")}`);
     const selectedClass = classId ? classes.find(item => item.id === classId) : classes.find(item => item.name.toLowerCase() === className?.trim().toLowerCase());
     const dashboard = await api("/api/dashboard");
-    const res = await fetch("/api/students", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({full_name:fullName.trim(), student_id:studentId.trim(), gender:gender?.trim() || null, admission_date:admissionDate, class_id:selectedClass?.id || null, academic_session_id:dashboard.session?.id || null})});
+    const res = await fetch("/api/students", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({full_name:fullName.trim(), student_id:studentId?.trim() || null, gender:gender?.trim() || null, admission_date:admissionDate, class_id:selectedClass?.id || null, academic_session_id:dashboard.session?.id || null})});
     const result = await res.json();
     if(!res.ok) throw new Error(result.error || "Unable to add student");
     alert("Student added successfully.");

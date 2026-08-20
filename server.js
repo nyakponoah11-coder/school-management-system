@@ -292,10 +292,10 @@ app.post("/api/students", async (req, res) => {
       roll_number
     } = req.body;
 
-    if (!student_id || !full_name) {
+    if (!full_name) {
       return res.status(400).json({
         success: false,
-        error: "Student ID and full name are required."
+        error: "Full name is required."
       });
     }
 
@@ -303,7 +303,7 @@ app.post("/api/students", async (req, res) => {
       await supabase
         .from("students")
         .insert({
-          student_id,
+          student_id: student_id || null,
           full_name,
           gender: gender || null,
           date_of_birth: date_of_birth || null,

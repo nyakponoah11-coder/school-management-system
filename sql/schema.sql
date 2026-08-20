@@ -76,7 +76,7 @@ create table if not exists subjects (
 
 create table if not exists students (
   id uuid primary key default gen_random_uuid(),
-  student_id text not null unique,
+  student_id text unique,
   full_name text not null,
   gender text check (gender in ('Male','Female','Other')),
   date_of_birth date,
@@ -193,3 +193,6 @@ begin
     execute format('create policy "prototype_anon_all" on %I for all to anon, authenticated using (true) with check (true)', table_name);
   end loop;
 end $$;
+
+-- Existing databases: allow students to be saved without a student ID.
+alter table students alter column student_id drop not null;

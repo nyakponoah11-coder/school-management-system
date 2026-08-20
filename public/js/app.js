@@ -45,7 +45,8 @@ async function handleAction(action, studentId, classId, target){
   if(action === "workspace-add-subject"){ await addSubject(currentClassId); return; }
   if(action === "add-fee"){ await addFee(); return; }
   if(action === "save-score"){ try { await saveScore(target); } catch(error) { alert(error.message); } return; }
-  if(action === "generate-reports"){ await generateReports(); return; }
+  if(action === "view-result"){ await viewResult(target); return; }
+  if(action === "generate-report"){ await generateStudentReport(); return; }
   if(action === "save-session"){ await saveSession(target); return; }
   if(action === "new-session"){ await addSession(); return; }
 }
@@ -139,8 +140,10 @@ async function loadDashboard(){
     document.getElementById("sessionCard").textContent = session;
     document.getElementById("semesterCard").textContent = semester;
     document.getElementById("periodText").textContent = `${session} · ${semester}`;
-    document.getElementById("reportSession").textContent = session;
-    document.getElementById("reportSemester").textContent = semester;
+    const reportSession = document.getElementById("reportSession");
+    const reportSemester = document.getElementById("reportSemester");
+    if(reportSession) reportSession.textContent = session;
+    if(reportSemester) reportSemester.textContent = semester;
 
     const students = await api("/api/students?limit=6");
     document.getElementById("recentStudents").innerHTML = students.length
@@ -274,37 +277,51 @@ async function loadResults(){
   body.innerHTML = `<tr><td colspan="6" class="empty">Loading rankings...</td></tr>`;
   try{
     const results = await api(`/api/results?${query}`);
-    body.innerHTML = results.length ? results.map(result => `<tr><td><strong>#${escapeHtml(result.position)}</strong></td><td>${escapeHtml(result.full_name)}</td><td>${escapeHtml(result.student_id)}</td><td>${escapeHtml(result.class_name)}</td><td>${escapeHtml(result.average)}</td><td>${escapeHtml(result.subjects)}</td></tr>`).join("") : `<tr><td colspan="6" class="empty">No scores have been entered for this selection.</td></tr>`;
-  }catch(error){ body.innerHTML = `<tr><td colspan="6" class="empty">Unable to load rankings.</td></tr>`; }
+    body.innerHTML = results.length ? results.map(result => `<tr><td><strong>#${escapeHtml(result.position)}</strong></td><td>${escapeHtml(result.full_name)}</td><td>${escapeHtml(result.student_id)}</td><td>${escapeHtml(result.class_name)}</td><td>${escapeHtml(result.average)}</td><td>${escapeHtml(result.subjects)}</td><td><button class="outline" data-action="view-result" data-enrollment-id="${escapeHtml(result.enrollment_id)}" data-semester-id="${escapeHtml(semesterId)}">View</button></td></tr>`).join("") : `<tr><td colspan="7" class="empty">No scores have been entered for this selection.</td></tr>`;
+  }catch(error){ body.innerHTML = `<tr><td colspan="7" class="empty">Unable to load rankings.</td></tr>`; }
 }
 
 async function loadReportFilters(){
-  await loadAcademicFilters("reportSessionSelect", "reportSemesterSelect", "reportClassSelect");
+  await loadAcademicFilters("reportSessionSelect", "reportSemesterSelect");
   document.getElementById("reportSessionSelect").onchange = () => loadReportFilters();
-  document.getElementById("reportSemesterSelect").onchange = () => loadReportsPreview();
-  document.getElementById("reportClassSelect").onchange = () => loadReportsPreview();
-  await loadReportsPreview();
+  document.getElementById("reportSemesterSelect").onchange = () => clearReport();
+  clearReport();
 }
 
-async function loadReportsPreview(){
-  const semesterId = document.getElementById("reportSemesterSelect")?.value;
-  const classId = document.getElementById("reportClassSelect")?.value;
-  if(!semesterId || !classId) return;
+function clearReport(){
   const body = document.getElementById("reportsTable");
-  body.innerHTML = `<tr><td colspan="7" class="empty">No generated reports yet. Generate reports to create them.</td></tr>`;
+  body.innerHTML = `<tr><td colspan="6" class="empty">Enter a student name and generate the report.</td></tr>`;
+  document.getElementById("reportStudentHeading").textContent = "Student Report";
+  document.getElementById("reportClassPosition").textContent = "";
 }
 
-async function generateReports(){
+async function generateStudentReport(){
   const semesterId = document.getElementById("reportSemesterSelect")?.value;
-  const classId = document.getElementById("reportClassSelect")?.value;
-  if(!semesterId || !classId){ alert("Select a session, semester and class first."); return; }
+  const studentName = document.getElementById("reportStudentName")?.value.trim();
+  if(!semesterId || !studentName){ alert("Select an academic year, semester and enter a student name first."); return; }
   try{
-    const res = await fetch("/api/reports/generate", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({semester_id:semesterId, class_id:classId})});
+    const res = await fetch(`/api/reports/student?semester_id=${encodeURIComponent(semesterId)}&student_name=${encodeURIComponent(studentName)}`);
     const result = await res.json();
-    if(!res.ok) throw new Error(result.error || "Unable to generate reports");
+    if(!res.ok) throw new Error(result.error || "Unable to generate report");
     const body = document.getElementById("reportsTable");
-    body.innerHTML = result.reports.length ? result.reports.sort((a, b) => a.position - b.position).map(report => `<tr><td><strong>#${escapeHtml(report.position)}</strong></td><td>${escapeHtml(report.student?.full_name)}</td><td>${escapeHtml(report.student?.student_id)}</td><td>${escapeHtml(report.class?.name)}</td><td>${escapeHtml(report.total)}</td><td>${escapeHtml(report.average)}</td><td>${escapeHtml(report.overall_remark)}</td></tr>`).join("") : `<tr><td colspan="7" class="empty">No scores found for this class.</td></tr>`;
-    document.getElementById("reportMessage").textContent = `${result.count} report(s) generated successfully.`;
+    body.innerHTML = result.subjects.length ? result.subjects.map(subject => `<tr><td>${escapeHtml(subject.name)}</td><td>${escapeHtml(subject.class_score)}</td><td>${escapeHtml(subject.exam_score)}</td><td>${escapeHtml(subject.average)}</td><td>#${escapeHtml(subject.position)} / ${escapeHtml(subject.subject_size)}</td><td>#${escapeHtml(result.class_position)} / ${escapeHtml(result.class_size)}</td></tr>`).join("") : `<tr><td colspan="6" class="empty">No scores found for this student.</td></tr>`;
+    document.getElementById("reportStudentHeading").textContent = `${result.student.full_name} · ${result.class.name}`;
+    document.getElementById("reportClassPosition").textContent = `Overall class position: #${result.class_position} of ${result.class_size}`;
+    document.getElementById("reportMessage").textContent = "Report generated successfully.";
+  }catch(error){ alert(error.message); }
+}
+
+async function viewResult(button){
+  const profile = document.getElementById("resultProfile");
+  try{
+    const result = await api(`/api/results?semester_id=${encodeURIComponent(button.dataset.semesterId)}&enrollment_id=${encodeURIComponent(button.dataset.enrollmentId)}`);
+    const student = result[0];
+    if(!student) throw new Error("No result found for this student.");
+    document.getElementById("resultProfileName").textContent = `${student.full_name} · ${student.class_name}`;
+    document.getElementById("resultProfileSummary").textContent = `Overall class position: #${student.position} of ${student.class_size}`;
+    document.getElementById("resultProfileTable").innerHTML = student.subject_results.map(subject => `<tr><td>${escapeHtml(subject.name)}</td><td>${escapeHtml(subject.class_score)}</td><td>${escapeHtml(subject.exam_score)}</td><td>${escapeHtml(subject.total_score)}</td><td>#${escapeHtml(subject.position)} / ${escapeHtml(subject.subject_size)}</td></tr>`).join("");
+    profile.hidden = false;
+    profile.scrollIntoView({behavior:"smooth", block:"start"});
   }catch(error){ alert(error.message); }
 }
 

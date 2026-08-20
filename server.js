@@ -1265,6 +1265,10 @@ app.get("/api/results", async (req, res) => {
         exam_score,
         grade,
         remark,
+        subjects (
+          id,
+          name
+        ),
         enrollments (
           id,
           class_id,
@@ -1311,7 +1315,8 @@ app.get("/api/results", async (req, res) => {
           class_name:
             enrollment.classes?.name,
           total: 0,
-          subjects: 0
+          subjects: 0,
+          subject_results: []
         };
       }
 
@@ -1319,6 +1324,13 @@ app.get("/api/results", async (req, res) => {
         Number(row.total_score || 0);
 
       grouped[key].subjects += 1;
+      grouped[key].subject_results.push({
+        subject_id: row.subjects?.id,
+        name: row.subjects?.name || "Subject",
+        class_score: Number(row.class_score || 0),
+        exam_score: Number(row.exam_score || 0),
+        total_score: Number(row.total_score || 0)
+      });
     }
 
     const results = Object.values(grouped);
@@ -1330,23 +1342,54 @@ app.get("/api/results", async (req, res) => {
           : 0;
     });
 
+    const subjectGroups = {};
+    for (const row of data || []) {
+      const subjectId = row.subjects?.id;
+      const classId = row.enrollments?.class_id;
+      if (!subjectId || !classId) continue;
+      const key = `${classId}:${subjectId}`;
+      if (!subjectGroups[key]) subjectGroups[key] = [];
+      subjectGroups[key].push(row);
+    }
+
+    for (const rows of Object.values(subjectGroups)) {
+      rows.sort((a, b) => Number(b.exam_score || 0) - Number(a.exam_score || 0));
+      rows.forEach((row, index) => {
+        const student = grouped[row.enrollment_id];
+        const subject = student?.subject_results.find(item => item.subject_id === row.subjects?.id);
+        if (subject) {
+          subject.position = index + 1;
+          subject.subject_size = rows.length;
+        }
+      });
+    }
+
     results.sort(
       (a, b) => b.average - a.average
     );
 
-    if (req.query.class_id) {
-      results.forEach((result, index) => {
-        result.position = index + 1;
-        result.class_size = results.length;
+    const classGroups = {};
+    results.forEach(result => {
+      if (!classGroups[result.class_name]) classGroups[result.class_name] = [];
+      classGroups[result.class_name].push(result);
+    });
+    Object.values(classGroups).forEach(classResults => {
+      classResults.sort((a, b) => b.average - a.average);
+      classResults.forEach((result, index) => {
+        result.class_position = index + 1;
+        result.class_size = classResults.length;
       });
-    } else {
-      results.forEach((result, index) => {
-        result.position = index + 1;
-        result.school_size = results.length;
-      });
-    }
+    });
+    results.forEach((result, index) => {
+      result.position = req.query.class_id ? result.class_position : index + 1;
+      result.school_size = results.length;
+    });
 
-    res.json(results);
+    const output = req.query.enrollment_id
+      ? results.filter(result => result.enrollment_id === req.query.enrollment_id)
+      : results;
+
+    res.json(output);
 
   } catch (error) {
     sendError(res, error);
@@ -1550,6 +1593,104 @@ app.post("/api/reports/generate", async (req, res) => {
 // ======================================================
 // SETTINGS
 // ======================================================
+
+app.get("/api/reports/student", async (req, res) => {
+  try {
+    const { semester_id, student_name } = req.query;
+    if (!semester_id || !student_name?.trim()) {
+      return res.status(400).json({ success: false, error: "Semester and student name are required." });
+    }
+
+    const { data, error } = await supabase
+      .from("scores")
+      .select(`
+        enrollment_id,
+        class_score,
+        exam_score,
+        total_score,
+        subjects (id, name),
+        enrollments (
+          class_id,
+          students (id, student_id, full_name),
+          classes (id, name)
+        )
+      `)
+      .eq("semester_id", semester_id);
+
+    if (error) throw error;
+
+    const groups = {};
+    for (const row of data || []) {
+      const enrollment = row.enrollments;
+      if (!enrollment) continue;
+      if (!groups[row.enrollment_id]) {
+        groups[row.enrollment_id] = {
+          enrollment_id: row.enrollment_id,
+          student: enrollment.students,
+          class: enrollment.classes,
+          total: 0,
+          subjects: []
+        };
+      }
+      groups[row.enrollment_id].total += Number(row.total_score || 0);
+      groups[row.enrollment_id].subjects.push({
+        subject_id: row.subjects?.id,
+        name: row.subjects?.name || "Subject",
+        class_score: Number(row.class_score || 0),
+        exam_score: Number(row.exam_score || 0),
+        total_score: Number(row.total_score || 0),
+        average: Number(row.total_score || 0)
+      });
+    }
+
+    const allStudents = Object.values(groups);
+    allStudents.forEach(student => {
+      student.average = student.subjects.length ? Number((student.total / student.subjects.length).toFixed(2)) : 0;
+    });
+
+    const classGroups = {};
+    allStudents.forEach(student => {
+      const classId = student.class?.id || "unknown";
+      if (!classGroups[classId]) classGroups[classId] = [];
+      classGroups[classId].push(student);
+    });
+    Object.values(classGroups).forEach(classStudents => {
+      classStudents.sort((a, b) => b.average - a.average);
+      classStudents.forEach((student, index) => {
+        student.class_position = index + 1;
+        student.class_size = classStudents.length;
+      });
+      const subjectGroups = {};
+      classStudents.forEach(student => student.subjects.forEach(subject => {
+        if (!subjectGroups[subject.subject_id]) subjectGroups[subject.subject_id] = [];
+        subjectGroups[subject.subject_id].push({student, subject});
+      }));
+      Object.values(subjectGroups).forEach(rows => {
+        rows.sort((a, b) => b.subject.exam_score - a.subject.exam_score);
+        rows.forEach((row, index) => {
+          row.subject.position = index + 1;
+          row.subject.subject_size = rows.length;
+        });
+      });
+    });
+
+    const search = student_name.trim().toLowerCase();
+    const matches = allStudents.filter(student => student.student?.full_name?.toLowerCase().includes(search));
+    if (!matches.length) return res.status(404).json({ success: false, error: "Student not found for this semester." });
+    if (matches.length > 1) return res.status(409).json({ success: false, error: "More than one student matched. Enter the full student name." });
+
+    const report = matches[0];
+    res.json({
+      student: report.student,
+      class: report.class,
+      class_position: report.class_position,
+      class_size: report.class_size,
+      subjects: report.subjects
+    });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
 
 app.get("/api/settings", async (_req, res) => {
   try {

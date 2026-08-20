@@ -785,7 +785,7 @@ app.post("/api/sessions", async (req, res) => {
       start_date,
       end_date,
       status,
-      first_semester
+      semester
     } = req.body;
 
     if (!name) {
@@ -808,13 +808,15 @@ app.post("/api/sessions", async (req, res) => {
 
     if (error) throw error;
 
-    // Automatically create the first semester.
+    const semesterName = semester === "Second Semester" ? "Second Semester" : "First Semester";
+    const sequenceNo = semesterName === "Second Semester" ? 2 : 1;
+
     const { error: semesterError } = await supabase
       .from("semesters")
       .insert({
         academic_session_id: session.id,
-        name: "First Semester",
-        sequence_no: 1,
+        name: semesterName,
+        sequence_no: sequenceNo,
         status:
           status === "active" && first_semester !== false
             ? "active"

@@ -34,7 +34,7 @@ create table if not exists app_users (
 
 create table if not exists academic_sessions (
   id uuid primary key default gen_random_uuid(),
-  name text not null unique,
+  name text not null,
   start_date date,
   end_date date,
   status text not null default 'planned' check (status in ('planned','active','closed')),
@@ -167,8 +167,10 @@ insert into classes (name, level, sort_order) values
 on conflict (name) do nothing;
 
 insert into academic_sessions (name, status)
-values ('2026/2027','active')
-on conflict (name) do nothing;
+select '2026/2027', 'active'
+where not exists (
+  select 1 from academic_sessions where name = '2026/2027' and status = 'active'
+);
 
 insert into semesters (academic_session_id, name, sequence_no, status, opened_at)
 select id, 'First Semester', 1, 'active', now()
@@ -196,3 +198,6 @@ end $$;
 
 -- Existing databases: allow students to be saved without a student ID.
 alter table students alter column student_id drop not null;
+
+-- Existing databases: allow the same academic year to have separate semester records.
+alter table academic_sessions drop constraint if exists academic_sessions_name_key;

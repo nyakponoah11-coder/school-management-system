@@ -352,8 +352,10 @@ async function saveSession(button){
 async function addSession(){
   const name = prompt("Session year (for example, 2027/2028):");
   if(!name?.trim()) return;
+  const semesterChoice = prompt("Semester: enter 1 for First Semester or 2 for Second Semester:", "1");
+  const semester = semesterChoice === "2" ? "Second Semester" : "First Semester";
   try{
-    const res = await fetch("/api/sessions", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:name.trim(), status:"planned"})});
+    const res = await fetch("/api/sessions", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:name.trim(), semester, status:"planned"})});
     const result = await res.json();
     if(!res.ok) throw new Error(result.error || "Unable to create session");
     await loadSessions();
@@ -378,7 +380,7 @@ async function loadSessions(){
   const box = document.getElementById("sessionsList");
   try{
     const sessions = await api("/api/sessions");
-    box.innerHTML = sessions.map(s => `<div class="period-card session-editor" style="margin-bottom:10px"><label>Session year<input data-field="name" value="${escapeHtml(s.name)}"></label><label>Start date<input type="date" data-field="start_date" value="${escapeHtml(s.start_date || "")}"></label><label>End date<input type="date" data-field="end_date" value="${escapeHtml(s.end_date || "")}"></label><label>Status<select data-field="status"><option value="planned" ${s.status === "planned" ? "selected" : ""}>Planned</option><option value="active" ${s.status === "active" ? "selected" : ""}>Active</option><option value="closed" ${s.status === "closed" ? "selected" : ""}>Closed</option></select></label><button class="primary" data-action="save-session" data-session-id="${escapeHtml(s.id)}">Save session</button></div>`).join("");
+    box.innerHTML = sessions.map(s => `<div class="period-card session-editor" style="margin-bottom:10px"><label>Session year<input data-field="name" value="${escapeHtml(s.name)}"></label><label>Semester<select data-field="semester_id">${(s.semesters || []).map(semester => `<option value="${escapeHtml(semester.id)}">${escapeHtml(semester.name)}</option>`).join("")}</select></label><label>Start date<input type="date" data-field="start_date" value="${escapeHtml(s.start_date || "")}"></label><label>End date<input type="date" data-field="end_date" value="${escapeHtml(s.end_date || "")}"></label><label>Status<select data-field="status"><option value="planned" ${s.status === "planned" ? "selected" : ""}>Planned</option><option value="active" ${s.status === "active" ? "selected" : ""}>Active</option><option value="closed" ${s.status === "closed" ? "selected" : ""}>Closed</option></select></label><button class="primary" data-action="save-session" data-session-id="${escapeHtml(s.id)}">Save session</button></div>`).join("");
   }catch(e){ box.innerHTML = `<div class="empty">Unable to load sessions.</div>`; }
 }
 

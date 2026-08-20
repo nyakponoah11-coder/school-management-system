@@ -17,6 +17,7 @@
       <h1>SUKLADZI D/A BASIC SCHOOL</h1>
       <p class="login-copy">Sign in to manage students, classes, fees and examination reports.</p>
       <form id="loginForm">
+        <label>Full name<input id="loginFullName" autocomplete="name" placeholder="Your full name" required></label>
         <label>Email<input id="loginEmail" type="email" autocomplete="username" placeholder="admin@sukladzi.local" required></label>
         <label>Password<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" required></label>
         <button class="primary login-button" type="submit">Sign in</button>
@@ -141,7 +142,7 @@
 
     <section id="page-sessions" class="page"><div class="page-header"><div><span class="eyebrow">ACADEMIC CONTROL</span><h2>Academic Sessions</h2><p>Edit session years and manage their semesters.</p></div><button class="primary" data-action="new-session">+ New Session</button></div><div class="panel"><div class="panel-head"><div><h3>Academic History</h3><p>Change the year, dates or status, then save.</p></div></div><div id="sessionsList"></div></div></section>
 
-    <section id="page-staff" class="page"><div class="page-header"><div><span class="eyebrow">ACCESS CONTROL</span><h2>Staff & Admins</h2><p>The Headmaster can assign administrators.</p></div><button class="primary" data-action="add-admin">+ Add Admin</button></div><div class="role-cards"><div><span>HM</span><strong>Headmaster</strong><small>Full system access</small></div><div><span>AD</span><strong>Administrator</strong><small>Manage students, scores and reports</small></div></div></section>
+    <section id="page-staff" class="page"><div class="page-header"><div><span class="eyebrow">ACCESS CONTROL</span><h2>Staff & Admins</h2><p>The Headmaster can assign administrators and review their activity.</p></div><button class="primary" data-action="add-admin">+ Add Admin</button></div><div class="role-cards"><div><span>HM</span><strong>Headmaster</strong><small>Full system access</small></div><div><span>AD</span><strong>Administrator</strong><small>Classes, subjects, fees, results and reports</small></div></div><div class="panel table-panel"><div class="panel-head"><div><h3>Activity Log</h3><p>Changes made by administrators and staff.</p></div></div><div class="table-wrap"><table><thead><tr><th>Initial</th><th>User</th><th>Action</th><th>Record</th><th>Time</th></tr></thead><tbody id="auditTable"></tbody></table></div></div></section>
 
     <section id="page-settings" class="page"><div class="page-header"><div><span class="eyebrow">CONFIGURATION</span><h2>Settings</h2><p>Customize your school's information and grading system.</p></div><button class="primary" data-action="save-settings">Save Changes</button></div><div class="panel form-panel"><div class="form-row"><label>School Name<input placeholder="Enter school name"></label><label>School Phone<input placeholder="+233..."></label></div><div class="form-row"><label>Address<input placeholder="School address"></label><label>Motto<input placeholder="School motto"></label></div><h3>Grading System</h3><p class="muted">The grading scale will be used automatically when results are calculated.</p></div></section>
   </main>

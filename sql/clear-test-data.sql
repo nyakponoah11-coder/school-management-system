@@ -18,7 +18,8 @@ truncate table
 	academic_sessions,
 	classes,
 	school_settings,
-	app_users
+	app_users,
+	site_accounts
 restart identity cascade;
 
 commit;

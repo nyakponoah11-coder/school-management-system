@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import { AsyncLocalStorage } from "async_hooks";
 import { createClient } from "@supabase/supabase-js";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -7,6 +8,7 @@ import { fileURLToPath } from "url";
 dotenv.config();
 
 const app = express();
+const auditContext = new AsyncLocalStorage();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,6 +39,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static(path.join(__dirname, "public")));
+app.use((req, _res, next) => auditContext.run({
+  name: req.headers["x-school-user-name"] || "Unknown user",
+  role: req.headers["x-school-user-role"] || "unknown"
+}, next));
 
 app.post("/api/auth/login", async (req, res) => {
   try {
@@ -48,9 +54,17 @@ app.post("/api/auth/login", async (req, res) => {
       { email: process.env.HEADMASTER_EMAIL || "headmaster@sukladzi.local", password: process.env.HEADMASTER_PASSWORD || "headmaster123", role: "headmaster" },
       { email: process.env.ADMIN_EMAIL || "admin@sukladzi.local", password: process.env.ADMIN_PASSWORD || "admin123", role: "administrator" }
     ];
-    const account = accounts.find(item => item.email === email && item.password === password);
+    const { data: savedAccount } = await supabase
+      .from("site_accounts")
+      .select("email,password,full_name,role,is_active")
+      .eq("email", email)
+      .eq("is_active", true)
+      .maybeSingle();
+    const account = savedAccount && savedAccount.password === password
+      ? savedAccount
+      : accounts.find(item => item.email === email && item.password === password);
     if (!account) return res.status(401).json({ success: false, error: "Invalid email or password." });
-    res.json({ success: true, user: { email: account.email, role: account.role } });
+    res.json({ success: true, user: { email: account.email, full_name: account.full_name || req.body.full_name || "Administrator", role: account.role } });
   } catch (error) {
     res.status(401).json({ success: false, error: "Invalid email or password." });
   }
@@ -82,16 +96,43 @@ function sendError(res, error, status = 500) {
 
 async function audit(action, entityType = null, entityId = null, details = {}) {
   try {
+    const actor = auditContext.getStore() || {};
     await supabase.from("audit_logs").insert({
       action,
       entity_type: entityType,
       entity_id: entityId || null,
-      details
+      details: {
+        ...details,
+        performed_by: actor.name || "Unknown user",
+        performed_role: actor.role || "unknown",
+        performed_at: new Date().toISOString()
+      }
     });
   } catch (error) {
     console.warn("Audit log failed:", error.message);
   }
 }
+
+app.post("/api/staff", async (req, res) => {
+  try {
+    if (req.headers["x-school-user-role"] !== "headmaster") return res.status(403).json({ success: false, error: "Only the Headmaster can add administrators." });
+    const { full_name, email, password } = req.body;
+    if (!full_name || !email || !password) return res.status(400).json({ success: false, error: "Full name, email and password are required." });
+    const { data, error } = await supabase.from("site_accounts").insert({ full_name, email, password, role: "administrator", is_active: true }).select("id,full_name,email,role,is_active,created_at").single();
+    if (error) throw error;
+    await audit("CREATE", "site_account", data.id, data);
+    res.status(201).json({ success: true, staff: data });
+  } catch (error) { sendError(res, error, 400); }
+});
+
+app.get("/api/audit-logs", async (_req, res) => {
+  try {
+    if (_req.headers["x-school-user-role"] !== "headmaster") return res.status(403).json({ success: false, error: "Only the Headmaster can view activity logs." });
+    const { data, error } = await supabase.from("audit_logs").select("id,action,entity_type,entity_id,details,created_at").order("created_at", { ascending: false }).limit(200);
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) { sendError(res, error); }
+});
 
 async function getActiveSession() {
   const { data, error } = await supabase

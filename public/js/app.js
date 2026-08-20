@@ -7,6 +7,7 @@ const appChrome = [document.querySelector(".sidebar"), document.querySelector(".
 const inactivityLimit = 30 * 60 * 1000;
 let inactivityTimer;
 let currentRole = localStorage.getItem("school_role") || "headmaster";
+let currentUserName = localStorage.getItem("school_user_name") || "Headmaster";
 const administratorPages = new Set(["classes", "class-workspace", "subjects", "fees", "results", "reports"]);
 
 const titles = {
@@ -31,6 +32,7 @@ function showPage(name){
   if(name === "sessions") loadSessions();
   if(name === "results") loadResultsFilters();
   if(name === "reports") loadReportFilters();
+  if(name === "staff") loadAuditLogs();
 }
 
 document.addEventListener("click", event => {
@@ -48,12 +50,14 @@ loginForm?.addEventListener("submit", async event => {
   button.disabled = true;
   message.textContent = "Signing in...";
   try{
-    const res = await fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:document.getElementById("loginEmail").value.trim(), password:document.getElementById("loginPassword").value})});
+    const res = await fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({full_name:document.getElementById("loginFullName").value.trim(), email:document.getElementById("loginEmail").value.trim(), password:document.getElementById("loginPassword").value})});
     const result = await res.json();
     if(!res.ok) throw new Error(result.error || "Unable to sign in");
     localStorage.setItem("school_logged_in", "true");
     localStorage.setItem("school_role", result.user.role);
+    localStorage.setItem("school_user_name", result.user.full_name);
     currentRole = result.user.role;
+    currentUserName = result.user.full_name;
     showApp();
     loadDashboard();
   }catch(error){ message.textContent = error.message; }
@@ -66,7 +70,7 @@ function showApp(){
   document.querySelectorAll("[data-role]").forEach(element => {
     element.hidden = element.dataset.role !== currentRole;
   });
-  document.getElementById("profileName").textContent = currentRole === "headmaster" ? "Headmaster" : "Administrator";
+  document.getElementById("profileName").textContent = currentUserName;
   document.getElementById("profileRole").textContent = currentRole === "headmaster" ? "Full access" : "Academic access";
   if(currentRole === "administrator") showPage("classes");
   resetInactivityTimer();
@@ -84,6 +88,7 @@ function resetInactivityTimer(){
   inactivityTimer = setTimeout(() => {
     localStorage.removeItem("school_logged_in");
     localStorage.removeItem("school_role");
+    localStorage.removeItem("school_user_name");
     showLogin();
     const message = document.getElementById("loginMessage");
     if(message) message.textContent = "Your session expired after 30 minutes of inactivity.";
@@ -100,6 +105,7 @@ async function handleAction(action, studentId, classId, target){
   if(action === "sign-out"){
     localStorage.removeItem("school_logged_in");
     localStorage.removeItem("school_role");
+    localStorage.removeItem("school_user_name");
     showLogin();
     return;
   }
@@ -112,6 +118,7 @@ async function handleAction(action, studentId, classId, target){
   if(action === "workspace-add-student"){ await addStudent(currentClassId); return; }
   if(action === "workspace-add-subject"){ await addSubject(currentClassId); return; }
   if(action === "add-fee"){ await addFee(); return; }
+  if(action === "add-admin"){ await addAdmin(); return; }
   if(action === "save-score"){ try { await saveScore(target); } catch(error) { alert(error.message); } return; }
   if(action === "view-result"){ await viewResult(target); return; }
   if(action === "generate-report"){ await generateStudentReport(); return; }
@@ -191,6 +198,42 @@ async function api(url){
   const res = await fetch(url);
   if(!res.ok) throw new Error(await res.text());
   return res.json();
+}
+
+const nativeFetch = window.fetch.bind(window);
+window.fetch = (url, options = {}) => {
+  const headers = new Headers(options.headers || {});
+  if(currentUserName) headers.set("x-school-user-name", currentUserName);
+  if(currentRole) headers.set("x-school-user-role", currentRole);
+  return nativeFetch(url, {...options, headers});
+};
+
+async function addAdmin(){
+  const fullName = prompt("Administrator full name:");
+  const email = prompt("Administrator email:");
+  const password = prompt("Administrator password:");
+  if(!fullName?.trim() || !email?.trim() || !password?.trim()) return;
+  try{
+    const res = await fetch("/api/staff", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({full_name:fullName.trim(), email:email.trim(), password:password.trim()})});
+    const result = await res.json();
+    if(!res.ok) throw new Error(result.error || "Unable to add administrator");
+    alert("Administrator added successfully.");
+    await loadAuditLogs();
+  }catch(error){ alert(error.message); }
+}
+
+async function loadAuditLogs(){
+  const body = document.getElementById("auditTable");
+  if(!body) return;
+  body.innerHTML = `<tr><td colspan="5" class="empty">Loading activity...</td></tr>`;
+  try{
+    const logs = await api("/api/audit-logs");
+    body.innerHTML = logs.length ? logs.map(log => {
+      const name = log.details?.performed_by || "Unknown";
+      const initial = name.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
+      return `<tr><td><strong>${escapeHtml(initial)}</strong></td><td>${escapeHtml(name)}</td><td>${escapeHtml(log.action)}</td><td>${escapeHtml(log.entity_type || "-")}</td><td>${escapeHtml(new Date(log.details?.performed_at || log.created_at).toLocaleString())}</td></tr>`;
+    }).join("") : `<tr><td colspan="5" class="empty">No activity recorded yet.</td></tr>`;
+  }catch(error){ body.innerHTML = `<tr><td colspan="5" class="empty">Unable to load activity.</td></tr>`; }
 }
 
 async function loadDashboard(){

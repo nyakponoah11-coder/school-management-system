@@ -32,6 +32,16 @@ create table if not exists app_users (
   created_at timestamptz not null default now()
 );
 
+create table if not exists site_accounts (
+  id uuid primary key default gen_random_uuid(),
+  full_name text not null,
+  email text not null unique,
+  password text not null,
+  role text not null default 'administrator' check (role in ('administrator')),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists academic_sessions (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -185,7 +195,7 @@ declare
   table_name text;
 begin
   foreach table_name in array array[
-    'school_settings', 'app_users', 'academic_sessions', 'semesters',
+    'school_settings', 'app_users', 'site_accounts', 'academic_sessions', 'semesters',
     'classes', 'subjects', 'students', 'enrollments', 'scores',
     'report_cards', 'audit_logs'
     , 'fee_records'

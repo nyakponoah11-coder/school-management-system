@@ -48,9 +48,13 @@ function errorMessage(error) {
 
 function sendError(res, error, status = 500) {
   console.error(error);
+  const message = errorMessage(error);
+  const isPolicyError = /row-level security|permission denied|violates.*policy/i.test(message);
   res.status(status).json({
     success: false,
-    error: errorMessage(error)
+    error: isPolicyError
+      ? "Supabase blocked this change. Run the project's SQL schema and RLS policies in Supabase, then try again."
+      : message
   });
 }
 
@@ -436,6 +440,38 @@ app.delete("/api/students/:id", async (req, res) => {
       student: data
     });
 
+  } catch (error) {
+    sendError(res, error, 400);
+  }
+});
+
+app.post("/api/enrollments", async (req, res) => {
+  try {
+    const { student_id, academic_session_id, class_id, roll_number } = req.body;
+
+    if (!student_id || !academic_session_id || !class_id) {
+      return res.status(400).json({
+        success: false,
+        error: "Student, academic session and class are required."
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("enrollments")
+      .upsert({
+        student_id,
+        academic_session_id,
+        class_id,
+        roll_number: roll_number || null,
+        enrollment_status: "active"
+      }, { onConflict: "student_id,academic_session_id" })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await audit("CREATE", "enrollment", data.id, data);
+    res.status(201).json({ success: true, enrollment: data });
   } catch (error) {
     sendError(res, error, 400);
   }

@@ -3,7 +3,7 @@ const pages = document.querySelectorAll(".page");
 const title = document.getElementById("pageTitle");
 
 const titles = {
-  dashboard:"Dashboard", students:"Students", classes:"Classes", subjects:"Subjects",
+  dashboard:"Dashboard", students:"Students", classes:"Classes", "class-workspace":"Class Workspace", subjects:"Subjects", fees:"School Fees",
   scores:"Enter Scores", results:"Results & Ranking", reports:"Semester Reports",
   sessions:"Academic Sessions", staff:"Staff & Admins", settings:"Settings"
 };
@@ -17,6 +17,7 @@ function showPage(name){
   if(name === "students") loadStudents();
   if(name === "classes") loadClasses();
   if(name === "subjects") loadSubjects();
+  if(name === "fees") loadFees();
   if(name === "sessions") loadSessions();
 }
 
@@ -24,11 +25,11 @@ document.addEventListener("click", event => {
   const target = event.target.closest("button");
   if(!target) return;
   if(target.dataset.page){ showPage(target.dataset.page); return; }
-  handleAction(target.dataset.action, target.dataset.studentId);
+  handleAction(target.dataset.action, target.dataset.studentId, target.dataset.classId, target);
 });
 document.getElementById("mobileMenu")?.addEventListener("click", () => document.querySelector(".sidebar").classList.toggle("open"));
 
-async function handleAction(action, studentId){
+async function handleAction(action, studentId, classId, target){
   if(!action) return;
   if(action === "search"){ showPage("students"); document.querySelector(".search")?.focus(); return; }
   if(action === "sign-out"){ alert("You have been signed out."); return; }
@@ -37,38 +38,49 @@ async function handleAction(action, studentId){
   if(action === "add-class"){ await addClass(); return; }
   if(action === "add-subject"){ await addSubject(); return; }
   if(action === "assign-class"){ await assignClass(studentId); return; }
+  if(action === "class-open"){ await openClass(classId); return; }
+  if(action === "workspace-add-student"){ await addStudent(currentClassId); return; }
+  if(action === "workspace-add-subject"){ await addSubject(currentClassId); return; }
+  if(action === "add-fee"){ await addFee(); return; }
+  if(action === "save-score"){ try { await saveScore(target); } catch(error) { alert(error.message); } return; }
 }
 
-async function addStudent(){
+let currentClassId = null;
+
+async function addStudent(classId = null){
   const fullName = prompt("Student full name:");
   if(!fullName?.trim()) return;
   const studentId = prompt("Student ID:");
   if(!studentId?.trim()) return;
+  const gender = prompt("Gender (Male, Female or Other):");
+  const admissionDate = prompt("Enrollment date (YYYY-MM-DD, optional):") || null;
   try{
     const classes = await api("/api/classes");
-    const className = prompt(`Class name (optional):\n${classes.map(item => item.name).join(", ")}`);
-    const selectedClass = classes.find(item => item.name.toLowerCase() === className?.trim().toLowerCase());
+    const className = classId ? null : prompt(`Class name (optional):\n${classes.map(item => item.name).join(", ")}`);
+    const selectedClass = classId ? classes.find(item => item.id === classId) : classes.find(item => item.name.toLowerCase() === className?.trim().toLowerCase());
     const dashboard = await api("/api/dashboard");
-    const res = await fetch("/api/students", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({full_name:fullName.trim(), student_id:studentId.trim(), class_id:selectedClass?.id || null, academic_session_id:dashboard.session?.id || null})});
+    const res = await fetch("/api/students", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({full_name:fullName.trim(), student_id:studentId.trim(), gender:gender?.trim() || null, admission_date:admissionDate, class_id:selectedClass?.id || null, academic_session_id:dashboard.session?.id || null})});
     const result = await res.json();
     if(!res.ok) throw new Error(result.error || "Unable to add student");
     alert("Student added successfully.");
     await loadStudents();
     await loadDashboard();
+    if(classId) await loadClassWorkspace(classId);
   }catch(error){ alert(error.message); }
 }
 
-async function addSubject(){
+async function addSubject(classId = null){
   const name = prompt("Subject name:");
   if(!name?.trim()) return;
   const code = prompt("Subject code (optional):");
   try{
-    const res = await fetch("/api/subjects", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:name.trim(), code:code?.trim() || null})});
+    const res = await fetch("/api/subjects", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:name.trim(), code:code?.trim() || null, class_id:classId || null})});
     const result = await res.json();
     if(!res.ok) throw new Error(result.error || "Unable to add subject");
     alert("Subject added successfully.");
     await loadSubjects();
     await loadDashboard();
+    if(classId) await loadClassWorkspace(classId);
   }catch(error){ alert(error.message); }
 }
 
@@ -137,18 +149,17 @@ async function loadDashboard(){
 
 async function loadStudents(){
   const body = document.getElementById("studentsTable");
-  body.innerHTML = `<tr><td colspan="6" class="empty">Loading...</td></tr>`;
+  body.innerHTML = `<tr><td colspan="5" class="empty">Loading...</td></tr>`;
   try{
     const students = await api("/api/students?limit=100");
     body.innerHTML = students.length ? students.map(s => `<tr>
       <td><strong>${escapeHtml(s.full_name)}</strong></td>
       <td>${escapeHtml(s.student_id)}</td>
-      <td>${escapeHtml(s.enrollments?.[0]?.classes?.name || "Not enrolled")}</td>
-      <td>${escapeHtml(s.gender || "—")}</td>
+      <td>${escapeHtml(s.admission_date || s.created_at?.slice(0, 10) || "—")}</td>
+      <td>${escapeHtml(s.gender || "Not specified")}</td>
       <td><span class="status active">${escapeHtml((s.status||"active").toUpperCase())}</span></td>
-      <td>${s.enrollments?.[0]?.classes?.name ? "—" : `<button class="outline table-action" data-action="assign-class" data-student-id="${escapeHtml(s.id)}">Assign class</button>`}</td>
-    </tr>`).join("") : `<tr><td colspan="6" class="empty">No students found.</td></tr>`;
-  }catch(e){ body.innerHTML = `<tr><td colspan="6" class="empty">Unable to load students.</td></tr>`; }
+    </tr>`).join("") : `<tr><td colspan="5" class="empty">No students found.</td></tr>`;
+  }catch(e){ body.innerHTML = `<tr><td colspan="5" class="empty">Unable to load students.</td></tr>`; }
 }
 
 async function loadSubjects(){
@@ -164,8 +175,72 @@ async function loadClasses(){
   const box = document.getElementById("classesList");
   try{
     const classes = await api("/api/classes");
-    box.innerHTML = classes.map(c => `<div class="class-card"><strong>${escapeHtml(c.name)}</strong><small>${escapeHtml(c.level)} · ${c.section ? escapeHtml(c.section) : "General class"}</small></div>`).join("");
+    box.innerHTML = classes.map(c => `<button class="class-card" data-action="class-open" data-class-id="${escapeHtml(c.id)}"><strong>${escapeHtml(c.name)}</strong><small>${escapeHtml(c.level)} · ${c.section ? escapeHtml(c.section) : "General class"}</small><span>Open class →</span></button>`).join("");
   }catch(e){ box.innerHTML = `<div class="panel">Unable to load classes.</div>`; }
+}
+
+async function openClass(classId){
+  currentClassId = classId;
+  showPage("class-workspace");
+  await loadClassWorkspace(classId);
+}
+
+async function loadClassWorkspace(classId){
+  currentClassId = classId;
+  const classes = await api("/api/classes");
+  const currentClass = classes.find(item => item.id === classId);
+  document.getElementById("workspaceTitle").textContent = currentClass?.name || "Class";
+  const dashboard = await api("/api/dashboard");
+  const enrollments = await api(`/api/enrollments?class_id=${encodeURIComponent(classId)}&session_id=${encodeURIComponent(dashboard.session?.id || "")}`);
+  const subjects = (await api("/api/subjects")).filter(subject => !subject.class_id || subject.class_id === classId);
+  const semesters = await api(`/api/semesters?session_id=${encodeURIComponent(dashboard.session?.id || "")}`);
+  const semester = semesters.find(item => item.status === "active") || semesters[0];
+  document.getElementById("workspaceSummary").textContent = `${enrollments.length} students · ${subjects.length} subjects · ${semester?.name || "No active semester"}`;
+  document.getElementById("classStudentsTable").innerHTML = enrollments.length ? enrollments.map(enrollment => `<tr><td><strong>${escapeHtml(enrollment.students?.full_name)}</strong></td><td>${escapeHtml(enrollment.students?.student_id)}</td><td>${escapeHtml(enrollment.students?.gender || "Not specified")}</td><td>${escapeHtml(enrollment.created_at?.slice(0, 10) || "—")}</td><td><span class="status active">${escapeHtml((enrollment.enrollment_status || "active").toUpperCase())}</span></td></tr>`).join("") : `<tr><td colspan="5" class="empty">No students in this class yet.</td></tr>`;
+  if(!enrollments.length || !subjects.length || !semester){
+    document.getElementById("scoreHead").innerHTML = "";
+    document.getElementById("scoreBody").innerHTML = `<tr><td class="empty">Add students, subjects and an active semester to enter scores.</td></tr>`;
+    return;
+  }
+  const scores = await api(`/api/scores?semester_id=${encodeURIComponent(semester.id)}`);
+  const scoreMap = new Map(scores.map(score => [`${score.enrollment_id}:${score.subject_id}`, score]));
+  document.getElementById("scoreHead").innerHTML = `<tr><th>Student</th>${subjects.map(subject => `<th>${escapeHtml(subject.name)}<small class="score-subhead">Class / Exam</small></th>`).join("")}</tr>`;
+  document.getElementById("scoreBody").innerHTML = enrollments.map(enrollment => `<tr><td><strong>${escapeHtml(enrollment.students?.full_name)}</strong></td>${subjects.map(subject => { const score = scoreMap.get(`${enrollment.id}:${subject.id}`) || {}; return `<td class="score-cell"><input type="number" min="0" step="0.01" placeholder="Class" value="${escapeHtml(score.class_score ?? "")}" data-score-field="class_score" data-enrollment-id="${enrollment.id}" data-subject-id="${subject.id}" data-semester-id="${semester.id}"><input type="number" min="0" step="0.01" placeholder="Exam" value="${escapeHtml(score.exam_score ?? "")}" data-score-field="exam_score" data-enrollment-id="${enrollment.id}" data-subject-id="${subject.id}" data-semester-id="${semester.id}"><button class="outline save-score" data-action="save-score" data-enrollment-id="${enrollment.id}" data-subject-id="${subject.id}" data-semester-id="${semester.id}">Save</button></td>`; }).join("")}</tr>`).join("");
+}
+
+async function saveScore(button){
+  const cell = button.closest(".score-cell");
+  const classScore = cell.querySelector('[data-score-field="class_score"]').value;
+  const examScore = cell.querySelector('[data-score-field="exam_score"]').value;
+  const payload = {enrollment_id:button.dataset.enrollmentId, subject_id:button.dataset.subjectId, semester_id:button.dataset.semesterId, class_score:classScore, exam_score:examScore};
+  const res = await fetch("/api/scores", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+  const result = await res.json();
+  if(!res.ok) throw new Error(result.error || "Unable to save score");
+  button.textContent = "Saved";
+  setTimeout(() => { button.textContent = "Save"; }, 1200);
+}
+
+async function loadFees(){
+  const body = document.getElementById("feesTable");
+  body.innerHTML = `<tr><td colspan="5" class="empty">Loading...</td></tr>`;
+  try{
+    const fees = await api("/api/fees");
+    body.innerHTML = fees.length ? fees.map(fee => `<tr><td>${escapeHtml(fee.students?.full_name || "Unknown")}</td><td>${escapeHtml(fee.description)}</td><td>${escapeHtml(fee.amount)}</td><td>${escapeHtml(fee.due_date || "—")}</td><td><span class="status active">${escapeHtml(fee.status.toUpperCase())}</span></td></tr>`).join("") : `<tr><td colspan="5" class="empty">No fee records yet.</td></tr>`;
+  }catch(error){ body.innerHTML = `<tr><td colspan="5" class="empty">Unable to load fee records.</td></tr>`; }
+}
+
+async function addFee(){
+  const studentId = prompt("Student ID:");
+  const description = prompt("Fee description:");
+  const amount = prompt("Amount:");
+  if(!studentId?.trim() || !description?.trim() || !amount?.trim()) return;
+  try{
+    const res = await fetch("/api/fees", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({student_id:studentId.trim(), description:description.trim(), amount:Number(amount)})});
+    const result = await res.json();
+    if(!res.ok) throw new Error(result.error || "Unable to add fee");
+    await loadFees();
+    alert("Fee record added.");
+  }catch(error){ alert(error.message); }
 }
 
 async function loadSessions(){

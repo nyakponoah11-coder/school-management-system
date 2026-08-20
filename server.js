@@ -1679,6 +1679,55 @@ app.get("/api/staff", async (_req, res) => {
 // FRONTEND FALLBACK
 // ======================================================
 
+app.get("/api/fees", async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("fee_records")
+      .select(`
+        id,
+        student_id,
+        description,
+        amount,
+        due_date,
+        status,
+        students (full_name, student_id)
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+app.post("/api/fees", async (req, res) => {
+  try {
+    const { student_id, description, amount, due_date, status } = req.body;
+    if (!student_id || !description || !Number.isFinite(Number(amount))) {
+      return res.status(400).json({ success: false, error: "Student, description and amount are required." });
+    }
+
+    const { data, error } = await supabase
+      .from("fee_records")
+      .insert({
+        student_id,
+        description,
+        amount: Number(amount),
+        due_date: due_date || null,
+        status: status || "unpaid"
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    await audit("CREATE", "fee_record", data.id, data);
+    res.status(201).json({ success: true, fee: data });
+  } catch (error) {
+    sendError(res, error, 400);
+  }
+});
+
 app.get("/{*splat}", (_req, res) => {
   res.sendFile(
     path.join(

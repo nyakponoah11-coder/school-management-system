@@ -1,6 +1,9 @@
 const navItems = document.querySelectorAll("[data-page]");
 const pages = document.querySelectorAll(".page");
 const title = document.getElementById("pageTitle");
+const loginPage = document.getElementById("loginPage");
+const loginForm = document.getElementById("loginForm");
+const appChrome = [document.querySelector(".sidebar"), document.querySelector(".main")];
 
 const titles = {
   dashboard:"Dashboard", students:"Students", classes:"Classes", "class-workspace":"Class Workspace", subjects:"Subjects", fees:"School Fees",
@@ -31,10 +34,41 @@ document.addEventListener("click", event => {
 });
 document.getElementById("mobileMenu")?.addEventListener("click", () => document.querySelector(".sidebar").classList.toggle("open"));
 
+loginForm?.addEventListener("submit", async event => {
+  event.preventDefault();
+  const message = document.getElementById("loginMessage");
+  const button = loginForm.querySelector("button[type=submit]");
+  button.disabled = true;
+  message.textContent = "Signing in...";
+  try{
+    const res = await fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:document.getElementById("loginEmail").value.trim(), password:document.getElementById("loginPassword").value})});
+    const result = await res.json();
+    if(!res.ok) throw new Error(result.error || "Unable to sign in");
+    localStorage.setItem("school_access_token", result.session.access_token);
+    showApp();
+    loadDashboard();
+  }catch(error){ message.textContent = error.message; }
+  finally{ button.disabled = false; }
+});
+
+function showApp(){
+  loginPage?.classList.add("app-hidden");
+  appChrome.forEach(element => element?.classList.remove("app-hidden"));
+}
+
+function showLogin(){
+  loginPage?.classList.remove("app-hidden");
+  appChrome.forEach(element => element?.classList.add("app-hidden"));
+}
+
 async function handleAction(action, studentId, classId, target){
   if(!action) return;
   if(action === "search"){ showPage("students"); document.querySelector(".search")?.focus(); return; }
-  if(action === "sign-out"){ alert("You have been signed out."); return; }
+  if(action === "sign-out"){
+    localStorage.removeItem("school_access_token");
+    showLogin();
+    return;
+  }
   if(action === "notifications"){ alert("No new notifications."); return; }
   if(action === "add-student"){ await addStudent(); return; }
   if(action === "add-class"){ await addClass(); return; }
@@ -388,4 +422,9 @@ function escapeHtml(value){
   return String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 }
 
-loadDashboard();
+if(localStorage.getItem("school_access_token")){
+  showApp();
+  loadDashboard();
+}else{
+  showLogin();
+}

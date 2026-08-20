@@ -38,6 +38,24 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static(path.join(__dirname, "public")));
 
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: "Email and password are required." });
+    }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    res.json({ success: true, session: data.session, user: data.user });
+  } catch (error) {
+    res.status(401).json({ success: false, error: "Invalid email or password." });
+  }
+});
+
+app.post("/api/auth/logout", async (_req, res) => {
+  res.json({ success: true });
+});
+
 // ======================================================
 // HELPERS
 // ======================================================

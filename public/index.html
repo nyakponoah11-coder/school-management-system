@@ -42,7 +42,7 @@
         <strong id="sideSession">2026/2027</strong>
         <small id="sideSemester">First Semester</small>
       </div>
-      <button class="logout">Sign out</button>
+      <button class="logout" data-action="sign-out">Sign out</button>
     </div>
   </aside>
 
@@ -54,8 +54,8 @@
         <h1 id="pageTitle">Dashboard</h1>
       </div>
       <div class="top-actions">
-        <button class="icon-btn">⌕</button>
-        <button class="icon-btn">🔔<i></i></button>
+        <button class="icon-btn" data-action="search" aria-label="Search">⌕</button>
+        <button class="icon-btn" data-action="notifications" aria-label="Notifications">🔔<i></i></button>
         <div class="profile">
           <div class="avatar">HM</div>
           <div><strong>Headmaster</strong><span>Administrator</span></div>
@@ -108,25 +108,25 @@
     </section>
 
     <section id="page-students" class="page">
-      <div class="page-header"><div><span class="eyebrow">SCHOOL RECORDS</span><h2>Students</h2><p>Manage student records and enrollments.</p></div><button class="primary">+ Add Student</button></div>
+      <div class="page-header"><div><span class="eyebrow">SCHOOL RECORDS</span><h2>Students</h2><p>Manage student records and enrollments.</p></div><button class="primary" data-action="add-student">+ Add Student</button></div>
       <div class="panel table-panel"><div class="panel-head"><div><h3>All Students</h3><p>Student records are preserved across academic sessions.</p></div><input class="search" placeholder="Search students..."></div><div class="table-wrap"><table><thead><tr><th>Student</th><th>ID</th><th>Class</th><th>Gender</th><th>Status</th></tr></thead><tbody id="studentsTable"></tbody></table></div></div>
     </section>
 
-    <section id="page-classes" class="page"><div class="page-header"><div><span class="eyebrow">SCHOOL STRUCTURE</span><h2>Classes</h2><p>Manage KG, Primary, JHS and SHS classes.</p></div><button class="primary">+ Add Class</button></div><div class="cards-list" id="classesList"></div></section>
+    <section id="page-classes" class="page"><div class="page-header"><div><span class="eyebrow">SCHOOL STRUCTURE</span><h2>Classes</h2><p>Manage KG, Primary, JHS and SHS classes.</p></div><button class="primary" data-action="add-class">+ Add Class</button></div><div class="cards-list" id="classesList"></div></section>
 
-    <section id="page-subjects" class="page"><div class="page-header"><div><span class="eyebrow">ACADEMICS</span><h2>Subjects</h2><p>Configure subjects and score weighting.</p></div><button class="primary">+ Add Subject</button></div><div class="empty-state"><div>▤</div><h3>No subjects configured yet</h3><p>Add subjects to begin entering student scores.</p></div></section>
+    <section id="page-subjects" class="page"><div class="page-header"><div><span class="eyebrow">ACADEMICS</span><h2>Subjects</h2><p>Configure subjects and score weighting.</p></div><button class="primary" data-action="add-subject">+ Add Subject</button></div><div class="empty-state"><div>▤</div><h3>No subjects configured yet</h3><p>Add subjects to begin entering student scores.</p></div></section>
 
-    <section id="page-scores" class="page"><div class="page-header"><div><span class="eyebrow">ACADEMIC RESULTS</span><h2>Enter Scores</h2><p>Record class assessment and examination scores.</p></div><button class="primary">Save Results</button></div><div class="panel form-panel"><div class="form-row"><label>Class<select><option>Select class</option></select></label><label>Subject<select><option>Select subject</option></select></label><label>Semester<select><option>First Semester</option></select></label></div><div class="info-box">Scores will automatically calculate the total, grade and remark according to the school's grading configuration.</div></div></section>
+    <section id="page-scores" class="page"><div class="page-header"><div><span class="eyebrow">ACADEMIC RESULTS</span><h2>Enter Scores</h2><p>Record class assessment and examination scores.</p></div><button class="primary" data-action="save-results">Save Results</button></div><div class="panel form-panel"><div class="form-row"><label>Class<select><option>Select class</option></select></label><label>Subject<select><option>Select subject</option></select></label><label>Semester<select><option>First Semester</option></select></label></div><div class="info-box">Scores will automatically calculate the total, grade and remark according to the school's grading configuration.</div></div></section>
 
-    <section id="page-results" class="page"><div class="page-header"><div><span class="eyebrow">PERFORMANCE</span><h2>Results & Ranking</h2><p>View class positions and best-performing students.</p></div><button class="outline">Export Results</button></div><div class="empty-state"><div>◈</div><h3>Results will appear here</h3><p>Enter scores for a class to calculate averages and positions.</p></div></section>
+    <section id="page-results" class="page"><div class="page-header"><div><span class="eyebrow">PERFORMANCE</span><h2>Results & Ranking</h2><p>View class positions and best-performing students.</p></div><button class="outline" data-action="export-results">Export Results</button></div><div class="empty-state"><div>◈</div><h3>Results will appear here</h3><p>Enter scores for a class to calculate averages and positions.</p></div></section>
 
-    <section id="page-reports" class="page"><div class="page-header"><div><span class="eyebrow">REPORT CARDS</span><h2>Semester Reports</h2><p>Generate and preserve student report cards.</p></div><button class="primary">Generate Reports</button></div><div class="report-preview"><div class="report-logo">S</div><h3>Student Semester Report</h3><p>Select a class and semester to generate report cards.</p><div class="report-fields"><span>Academic Session <b id="reportSession">2026/2027</b></span><span>Semester <b id="reportSemester">First Semester</b></span></div></div></section>
+    <section id="page-reports" class="page"><div class="page-header"><div><span class="eyebrow">REPORT CARDS</span><h2>Semester Reports</h2><p>Generate and preserve student report cards.</p></div><button class="primary" data-action="generate-reports">Generate Reports</button></div><div class="report-preview"><div class="report-logo">S</div><h3>Student Semester Report</h3><p>Select a class and semester to generate report cards.</p><div class="report-fields"><span>Academic Session <b id="reportSession">2026/2027</b></span><span>Semester <b id="reportSemester">First Semester</b></span></div></div></section>
 
-    <section id="page-sessions" class="page"><div class="page-header"><div><span class="eyebrow">ACADEMIC CONTROL</span><h2>Academic Sessions</h2><p>Close semesters without deleting historical records.</p></div><button class="primary">+ New Session</button></div><div class="panel"><div class="panel-head"><div><h3>Academic History</h3><p>Previous reports and enrollments remain available.</p></div></div><div id="sessionsList"></div></div></section>
+    <section id="page-sessions" class="page"><div class="page-header"><div><span class="eyebrow">ACADEMIC CONTROL</span><h2>Academic Sessions</h2><p>Close semesters without deleting historical records.</p></div><button class="primary" data-action="new-session">+ New Session</button></div><div class="panel"><div class="panel-head"><div><h3>Academic History</h3><p>Previous reports and enrollments remain available.</p></div></div><div id="sessionsList"></div></div></section>
 
-    <section id="page-staff" class="page"><div class="page-header"><div><span class="eyebrow">ACCESS CONTROL</span><h2>Staff & Admins</h2><p>The Headmaster can assign administrators.</p></div><button class="primary">+ Add Admin</button></div><div class="role-cards"><div><span>HM</span><strong>Headmaster</strong><small>Full system access</small></div><div><span>AD</span><strong>Administrator</strong><small>Manage students, scores and reports</small></div></div></section>
+    <section id="page-staff" class="page"><div class="page-header"><div><span class="eyebrow">ACCESS CONTROL</span><h2>Staff & Admins</h2><p>The Headmaster can assign administrators.</p></div><button class="primary" data-action="add-admin">+ Add Admin</button></div><div class="role-cards"><div><span>HM</span><strong>Headmaster</strong><small>Full system access</small></div><div><span>AD</span><strong>Administrator</strong><small>Manage students, scores and reports</small></div></div></section>
 
-    <section id="page-settings" class="page"><div class="page-header"><div><span class="eyebrow">CONFIGURATION</span><h2>Settings</h2><p>Customize your school's information and grading system.</p></div><button class="primary">Save Changes</button></div><div class="panel form-panel"><div class="form-row"><label>School Name<input placeholder="Enter school name"></label><label>School Phone<input placeholder="+233..."></label></div><div class="form-row"><label>Address<input placeholder="School address"></label><label>Motto<input placeholder="School motto"></label></div><h3>Grading System</h3><p class="muted">The grading scale will be used automatically when results are calculated.</p></div></section>
+    <section id="page-settings" class="page"><div class="page-header"><div><span class="eyebrow">CONFIGURATION</span><h2>Settings</h2><p>Customize your school's information and grading system.</p></div><button class="primary" data-action="save-settings">Save Changes</button></div><div class="panel form-panel"><div class="form-row"><label>School Name<input placeholder="Enter school name"></label><label>School Phone<input placeholder="+233..."></label></div><div class="form-row"><label>Address<input placeholder="School address"></label><label>Motto<input placeholder="School motto"></label></div><h3>Grading System</h3><p class="muted">The grading scale will be used automatically when results are calculated.</p></div></section>
   </main>
 
   <script src="/js/app.js"></script>

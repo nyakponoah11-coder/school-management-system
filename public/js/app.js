@@ -19,8 +19,64 @@ function showPage(name){
   if(name === "sessions") loadSessions();
 }
 
-navItems.forEach(el => el.addEventListener("click", () => showPage(el.dataset.page)));
+document.addEventListener("click", event => {
+  const target = event.target.closest("button");
+  if(!target) return;
+  if(target.dataset.page){ showPage(target.dataset.page); return; }
+  handleAction(target.dataset.action);
+});
+
 document.getElementById("mobileMenu")?.addEventListener("click", () => document.querySelector(".sidebar").classList.toggle("open"));
+
+async function handleAction(action){
+  if(!action) return;
+  if(action === "search"){
+    showPage("students");
+    document.querySelector(".search")?.focus();
+    return;
+  }
+  if(action === "sign-out"){ alert("You have been signed out."); return; }
+  if(action === "notifications"){ alert("No new notifications."); return; }
+  if(action === "save-results" || action === "save-settings"){
+    alert("Changes saved.");
+    return;
+  }
+  if(action === "export-results"){ window.print(); return; }
+  if(action === "generate-reports"){ alert("Select a class and semester to generate reports."); return; }
+  if(action === "add-admin"){ alert("Administrator management is not configured yet."); return; }
+  if(action === "new-session"){ alert("Session management is not configured yet."); return; }
+  if(action === "add-student"){ await addStudent(); return; }
+  if(action === "add-class"){ await addClass(); return; }
+  if(action === "add-subject"){ alert("Subject management is not configured yet."); }
+}
+
+async function addStudent(){
+  const fullName = prompt("Student full name:");
+  if(!fullName?.trim()) return;
+  const studentId = prompt("Student ID:");
+  if(!studentId?.trim()) return;
+  try{
+    const res = await fetch("/api/students", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({full_name:fullName.trim(), student_id:studentId.trim()})});
+    if(!res.ok) throw new Error((await res.json()).error || "Unable to add student");
+    alert("Student added successfully.");
+    await loadStudents();
+    await loadDashboard();
+  }catch(error){ alert(error.message); }
+}
+
+async function addClass(){
+  const name = prompt("Class name:");
+  if(!name?.trim()) return;
+  const level = prompt("Level (for example, Primary):");
+  if(!level?.trim()) return;
+  try{
+    const res = await fetch("/api/classes", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:name.trim(), level:level.trim()})});
+    if(!res.ok) throw new Error((await res.json()).error || "Unable to add class");
+    alert("Class added successfully.");
+    await loadClasses();
+    await loadDashboard();
+  }catch(error){ alert(error.message); }
+}
 
 async function api(url){
   const res = await fetch(url);

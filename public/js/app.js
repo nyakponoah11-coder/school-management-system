@@ -184,7 +184,7 @@ async function loadClasses(){
   const box = document.getElementById("classesList");
   try{
     const classes = await api("/api/classes");
-    box.innerHTML = classes.map(c => `<button class="class-card" data-action="class-open" data-class-id="${escapeHtml(c.id)}"><strong>${escapeHtml(c.name)}</strong><small>${escapeHtml(c.level)} · ${c.section ? escapeHtml(c.section) : "General class"}</small><span>Open class →</span></button>`).join("");
+    box.innerHTML = classes.map((c, index) => `<button class="class-card class-color-${index % 6}" data-action="class-open" data-class-id="${escapeHtml(c.id)}"><strong>${escapeHtml(c.name)}</strong><small>${escapeHtml(c.level)} · ${c.section ? escapeHtml(c.section) : "General class"}</small><span>Open class →</span></button>`).join("");
   }catch(e){ box.innerHTML = `<div class="panel">Unable to load classes.</div>`; }
 }
 
@@ -205,6 +205,7 @@ async function loadClassWorkspace(classId){
   const semesters = await api(`/api/semesters?session_id=${encodeURIComponent(dashboard.session?.id || "")}`);
   const semester = semesters.find(item => item.status === "active") || semesters[0];
   document.getElementById("workspaceSummary").textContent = `${enrollments.length} students · ${subjects.length} subjects · ${semester?.name || "No active semester"}`;
+  document.getElementById("workspaceStudentCount").textContent = `${enrollments.length} student${enrollments.length === 1 ? "" : "s"} enrolled in this class`;
   document.getElementById("classStudentsTable").innerHTML = enrollments.length ? enrollments.map(enrollment => `<tr><td><strong>${escapeHtml(enrollment.students?.full_name)}</strong></td><td>${escapeHtml(enrollment.students?.student_id)}</td><td>${escapeHtml(enrollment.students?.gender || "Not specified")}</td><td>${escapeHtml(enrollment.created_at?.slice(0, 10) || "—")}</td><td><span class="status active">${escapeHtml((enrollment.enrollment_status || "active").toUpperCase())}</span></td></tr>`).join("") : `<tr><td colspan="5" class="empty">No students in this class yet.</td></tr>`;
   if(!enrollments.length || !subjects.length || !semester){
     document.getElementById("scoreHead").innerHTML = "";
@@ -295,6 +296,14 @@ function clearReport(){
   document.getElementById("reportStudentHeading").textContent = "Student Report";
   document.getElementById("reportClassPosition").textContent = "";
   document.getElementById("reportSummary").hidden = true;
+  updateReportHeading();
+}
+
+function updateReportHeading(){
+  const session = document.getElementById("reportSessionSelect")?.selectedOptions[0]?.textContent || "Academic Year";
+  const semester = document.getElementById("reportSemesterSelect")?.selectedOptions[0]?.textContent || "Semester";
+  const heading = document.getElementById("reportExamTitle");
+  if(heading) heading.textContent = `End of ${session} ${semester} Examination Report`;
 }
 
 async function generateStudentReport(){

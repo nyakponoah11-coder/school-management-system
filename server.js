@@ -1284,6 +1284,10 @@ app.get("/api/results", async (req, res) => {
         req.query.semester_id
       );
 
+    if (req.query.class_id) {
+      query = query.eq("enrollments.class_id", req.query.class_id);
+    }
+
     const { data, error } = await query;
 
     if (error) throw error;
@@ -1326,30 +1330,21 @@ app.get("/api/results", async (req, res) => {
           : 0;
     });
 
-    const byClass = {};
-
-    for (const r of results) {
-      if (!byClass[r.class_name]) {
-        byClass[r.class_name] = [];
-      }
-
-      byClass[r.class_name].push(r);
-    }
-
-    for (const className of Object.keys(byClass)) {
-      byClass[className].sort(
-        (a, b) => b.average - a.average
-      );
-
-      byClass[className].forEach((r, index) => {
-        r.position = index + 1;
-        r.class_size = byClass[className].length;
-      });
-    }
-
     results.sort(
       (a, b) => b.average - a.average
     );
+
+    if (req.query.class_id) {
+      results.forEach((result, index) => {
+        result.position = index + 1;
+        result.class_size = results.length;
+      });
+    } else {
+      results.forEach((result, index) => {
+        result.position = index + 1;
+        result.school_size = results.length;
+      });
+    }
 
     res.json(results);
 
@@ -1405,6 +1400,10 @@ app.post("/api/reports/generate", async (req, res) => {
         "enrollment_id",
         enrollment_id
       );
+    }
+
+    if (req.body.class_id) {
+      query = query.eq("enrollments.class_id", req.body.class_id);
     }
 
     const { data: scores, error } = await query;

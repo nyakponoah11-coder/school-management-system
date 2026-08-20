@@ -19,6 +19,8 @@ function showPage(name){
   if(name === "subjects") loadSubjects();
   if(name === "fees") loadFees();
   if(name === "sessions") loadSessions();
+  if(name === "results") loadResultsFilters();
+  if(name === "reports") loadReportFilters();
 }
 
 document.addEventListener("click", event => {
@@ -43,6 +45,9 @@ async function handleAction(action, studentId, classId, target){
   if(action === "workspace-add-subject"){ await addSubject(currentClassId); return; }
   if(action === "add-fee"){ await addFee(); return; }
   if(action === "save-score"){ try { await saveScore(target); } catch(error) { alert(error.message); } return; }
+  if(action === "generate-reports"){ await generateReports(); return; }
+  if(action === "save-session"){ await saveSession(target); return; }
+  if(action === "new-session"){ await addSession(); return; }
 }
 
 let currentClassId = null;
@@ -229,6 +234,103 @@ async function loadFees(){
   }catch(error){ body.innerHTML = `<tr><td colspan="5" class="empty">Unable to load fee records.</td></tr>`; }
 }
 
+async function loadAcademicFilters(sessionSelectId, semesterSelectId, classSelectId){
+  const [sessions, classes] = await Promise.all([api("/api/sessions"), api("/api/classes")]);
+  const sessionSelect = document.getElementById(sessionSelectId);
+  const semesterSelect = document.getElementById(semesterSelectId);
+  const classSelect = classSelectId ? document.getElementById(classSelectId) : null;
+  sessionSelect.innerHTML = sessions.map(session => `<option value="${escapeHtml(session.id)}">${escapeHtml(session.name)}</option>`).join("");
+  if(classSelect) classSelect.innerHTML = classes.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("");
+  async function updateSemesters(){
+    const current = sessions.find(session => session.id === sessionSelect.value);
+    const semesters = current?.semesters || [];
+    semesterSelect.innerHTML = semesters.map(semester => `<option value="${escapeHtml(semester.id)}">${escapeHtml(semester.name)}</option>`).join("");
+  }
+  sessionSelect.addEventListener("change", updateSemesters);
+  await updateSemesters();
+  return {sessions, classes};
+}
+
+async function loadResultsFilters(){
+  const {classes} = await loadAcademicFilters("resultsSession", "resultsSemester", "resultsClass");
+  const scope = document.getElementById("resultsScope");
+  const classLabel = document.getElementById("resultsClassLabel");
+  const refresh = () => { classLabel.hidden = scope.value !== "class"; loadResults(); };
+  scope.onchange = refresh;
+  document.getElementById("resultsSession").onchange = refresh;
+  document.getElementById("resultsSemester").onchange = refresh;
+  document.getElementById("resultsClass").onchange = refresh;
+  classLabel.hidden = scope.value !== "class";
+  if(classes.length) await loadResults();
+}
+
+async function loadResults(){
+  const semesterId = document.getElementById("resultsSemester")?.value;
+  if(!semesterId) return;
+  const classId = document.getElementById("resultsScope")?.value === "class" ? document.getElementById("resultsClass")?.value : "";
+  const query = new URLSearchParams({semester_id:semesterId});
+  if(classId) query.set("class_id", classId);
+  const body = document.getElementById("resultsTable");
+  body.innerHTML = `<tr><td colspan="6" class="empty">Loading rankings...</td></tr>`;
+  try{
+    const results = await api(`/api/results?${query}`);
+    body.innerHTML = results.length ? results.map(result => `<tr><td><strong>#${escapeHtml(result.position)}</strong></td><td>${escapeHtml(result.full_name)}</td><td>${escapeHtml(result.student_id)}</td><td>${escapeHtml(result.class_name)}</td><td>${escapeHtml(result.average)}</td><td>${escapeHtml(result.subjects)}</td></tr>`).join("") : `<tr><td colspan="6" class="empty">No scores have been entered for this selection.</td></tr>`;
+  }catch(error){ body.innerHTML = `<tr><td colspan="6" class="empty">Unable to load rankings.</td></tr>`; }
+}
+
+async function loadReportFilters(){
+  await loadAcademicFilters("reportSessionSelect", "reportSemesterSelect", "reportClassSelect");
+  document.getElementById("reportSessionSelect").onchange = () => loadReportFilters();
+  document.getElementById("reportSemesterSelect").onchange = () => loadReportsPreview();
+  document.getElementById("reportClassSelect").onchange = () => loadReportsPreview();
+  await loadReportsPreview();
+}
+
+async function loadReportsPreview(){
+  const semesterId = document.getElementById("reportSemesterSelect")?.value;
+  const classId = document.getElementById("reportClassSelect")?.value;
+  if(!semesterId || !classId) return;
+  const body = document.getElementById("reportsTable");
+  body.innerHTML = `<tr><td colspan="7" class="empty">No generated reports yet. Generate reports to create them.</td></tr>`;
+}
+
+async function generateReports(){
+  const semesterId = document.getElementById("reportSemesterSelect")?.value;
+  const classId = document.getElementById("reportClassSelect")?.value;
+  if(!semesterId || !classId){ alert("Select a session, semester and class first."); return; }
+  try{
+    const res = await fetch("/api/reports/generate", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({semester_id:semesterId, class_id:classId})});
+    const result = await res.json();
+    if(!res.ok) throw new Error(result.error || "Unable to generate reports");
+    const body = document.getElementById("reportsTable");
+    body.innerHTML = result.reports.length ? result.reports.sort((a, b) => a.position - b.position).map(report => `<tr><td><strong>#${escapeHtml(report.position)}</strong></td><td>${escapeHtml(report.student?.full_name)}</td><td>${escapeHtml(report.student?.student_id)}</td><td>${escapeHtml(report.class?.name)}</td><td>${escapeHtml(report.total)}</td><td>${escapeHtml(report.average)}</td><td>${escapeHtml(report.overall_remark)}</td></tr>`).join("") : `<tr><td colspan="7" class="empty">No scores found for this class.</td></tr>`;
+    document.getElementById("reportMessage").textContent = `${result.count} report(s) generated successfully.`;
+  }catch(error){ alert(error.message); }
+}
+
+async function saveSession(button){
+  const card = button.closest(".session-editor");
+  try{
+    const res = await fetch(`/api/sessions/${button.dataset.sessionId}`, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:card.querySelector("[data-field=name]").value, start_date:card.querySelector("[data-field=start_date]").value || null, end_date:card.querySelector("[data-field=end_date]").value || null, status:card.querySelector("[data-field=status]").value})});
+    const result = await res.json();
+    if(!res.ok) throw new Error(result.error || "Unable to save session");
+    alert("Academic session updated.");
+    await loadSessions();
+    await loadDashboard();
+  }catch(error){ alert(error.message); }
+}
+
+async function addSession(){
+  const name = prompt("Session year (for example, 2027/2028):");
+  if(!name?.trim()) return;
+  try{
+    const res = await fetch("/api/sessions", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:name.trim(), status:"planned"})});
+    const result = await res.json();
+    if(!res.ok) throw new Error(result.error || "Unable to create session");
+    await loadSessions();
+  }catch(error){ alert(error.message); }
+}
+
 async function addFee(){
   const studentId = prompt("Student ID:");
   const description = prompt("Fee description:");
@@ -247,7 +349,7 @@ async function loadSessions(){
   const box = document.getElementById("sessionsList");
   try{
     const sessions = await api("/api/sessions");
-    box.innerHTML = sessions.map(s => `<div class="period-card" style="margin-bottom:10px"><div><span>Academic Session</span><strong>${escapeHtml(s.name)}</strong></div><div><span>Status</span><strong>${escapeHtml(s.status.toUpperCase())}</strong></div><div><span>Dates</span><strong>${s.start_date || "—"} → ${s.end_date || "—"}</strong></div></div>`).join("");
+    box.innerHTML = sessions.map(s => `<div class="period-card session-editor" style="margin-bottom:10px"><label>Session year<input data-field="name" value="${escapeHtml(s.name)}"></label><label>Start date<input type="date" data-field="start_date" value="${escapeHtml(s.start_date || "")}"></label><label>End date<input type="date" data-field="end_date" value="${escapeHtml(s.end_date || "")}"></label><label>Status<select data-field="status"><option value="planned" ${s.status === "planned" ? "selected" : ""}>Planned</option><option value="active" ${s.status === "active" ? "selected" : ""}>Active</option><option value="closed" ${s.status === "closed" ? "selected" : ""}>Closed</option></select></label><button class="primary" data-action="save-session" data-session-id="${escapeHtml(s.id)}">Save session</button></div>`).join("");
   }catch(e){ box.innerHTML = `<div class="empty">Unable to load sessions.</div>`; }
 }
 

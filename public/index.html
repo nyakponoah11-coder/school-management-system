@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>School Management System</title>
+  <title>SUKLADZI D/A BASIC SCHOOL</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">S</div>
-      <div><strong>SchoolDesk</strong><span>Management System</span></div>
+      <div><strong>SUKLADZI D/A BASIC SCHOOL</strong><span>School Management System</span></div>
     </div>
 
     <nav>
@@ -121,7 +121,7 @@
 
     <section id="page-results" class="page"><div class="page-header"><div><span class="eyebrow">PERFORMANCE</span><h2>Results & Ranking</h2><p>Compare performance across the whole school or one class.</p></div><button class="outline" data-action="export-results">Export Results</button></div><div class="panel form-panel"><div class="form-row"><label>Session<select id="resultsSession"></select></label><label>Semester<select id="resultsSemester"></select></label><label>View<select id="resultsScope"><option value="school">Whole school</option><option value="class">One class</option></select></label><label id="resultsClassLabel" hidden>Class<select id="resultsClass"></select></label></div></div><div class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Position</th><th>Student</th><th>Student ID</th><th>Class</th><th>Average</th><th>Subjects</th><th>View</th></tr></thead><tbody id="resultsTable"></tbody></table></div></div><div class="panel table-panel" id="resultProfile" hidden><div class="panel-head"><div><h3 id="resultProfileName">Student Profile</h3><p id="resultProfileSummary"></p></div></div><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Class Score</th><th>Exam Score</th><th>Total</th><th>Subject Position</th></tr></thead><tbody id="resultProfileTable"></tbody></table></div></div></section>
 
-    <section id="page-reports" class="page"><div class="page-header"><div><span class="eyebrow">REPORT CARDS</span><h2>Student Reports</h2><p>Generate one student's report for a selected academic period.</p></div><button class="primary" data-action="generate-report">Generate Report</button></div><div class="panel form-panel report-controls"><div class="form-row"><label>Academic Year<select id="reportSessionSelect"></select></label><label>Semester<select id="reportSemesterSelect"></select></label><label>Student Name<input id="reportStudentName" placeholder="Enter student name"></label></div><div class="info-box" id="reportMessage">Select an academic year, semester and student name.</div></div><div class="panel table-panel report-sheet" id="reportSheet"><div class="report-heading"><div><h3 id="reportStudentHeading">Student Report</h3><p id="reportClassPosition"></p></div><button class="outline report-print" data-action="print-report">Print / Save PDF</button></div><div class="report-summary" id="reportSummary" hidden></div><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Class Score</th><th>Exam Score</th><th>Average</th><th>Subject Position</th></tr></thead><tbody id="reportsTable"></tbody></table></div></div></section>
+    <section id="page-reports" class="page"><div class="page-header"><div><span class="eyebrow">REPORT CARDS</span><h2>Student Reports</h2><p>Generate one student's report for a selected academic period.</p></div><button class="primary" data-action="generate-report">Generate Report</button></div><div class="panel form-panel report-controls"><div class="form-row"><label>Academic Year<select id="reportSessionSelect"></select></label><label>Semester<select id="reportSemesterSelect"></select></label><label>Student Name<input id="reportStudentName" placeholder="Enter student name"></label></div><div class="info-box" id="reportMessage">Select an academic year, semester and student name.</div></div><div class="panel table-panel report-sheet" id="reportSheet"><div class="report-heading"><div><h2 class="report-school-name">SUKLADZI D/A BASIC SCHOOL</h2><p class="report-exam-title">End of Semester Examination Report</p><h3 id="reportStudentHeading">Student Report</h3><p id="reportClassPosition"></p></div><button class="outline report-print" data-action="print-report">Print / Save PDF</button></div><div class="report-summary" id="reportSummary" hidden></div><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Class Score</th><th>Exam Score</th><th>Average</th><th>Subject Position</th></tr></thead><tbody id="reportsTable"></tbody></table></div></div></section>
 
     <section id="page-sessions" class="page"><div class="page-header"><div><span class="eyebrow">ACADEMIC CONTROL</span><h2>Academic Sessions</h2><p>Edit session years and manage their semesters.</p></div><button class="primary" data-action="new-session">+ New Session</button></div><div class="panel"><div class="panel-head"><div><h3>Academic History</h3><p>Change the year, dates or status, then save.</p></div></div><div id="sessionsList"></div></div></section>
 

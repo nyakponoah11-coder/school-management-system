@@ -47,6 +47,7 @@ async function handleAction(action, studentId, classId, target){
   if(action === "save-score"){ try { await saveScore(target); } catch(error) { alert(error.message); } return; }
   if(action === "view-result"){ await viewResult(target); return; }
   if(action === "generate-report"){ await generateStudentReport(); return; }
+  if(action === "print-report"){ window.print(); return; }
   if(action === "save-session"){ await saveSession(target); return; }
   if(action === "new-session"){ await addSession(); return; }
 }
@@ -293,6 +294,7 @@ function clearReport(){
   body.innerHTML = `<tr><td colspan="6" class="empty">Enter a student name and generate the report.</td></tr>`;
   document.getElementById("reportStudentHeading").textContent = "Student Report";
   document.getElementById("reportClassPosition").textContent = "";
+  document.getElementById("reportSummary").hidden = true;
 }
 
 async function generateStudentReport(){
@@ -304,9 +306,11 @@ async function generateStudentReport(){
     const result = await res.json();
     if(!res.ok) throw new Error(result.error || "Unable to generate report");
     const body = document.getElementById("reportsTable");
-    body.innerHTML = result.subjects.length ? result.subjects.map(subject => `<tr><td>${escapeHtml(subject.name)}</td><td>${escapeHtml(subject.class_score)}</td><td>${escapeHtml(subject.exam_score)}</td><td>${escapeHtml(subject.average)}</td><td>#${escapeHtml(subject.position)} / ${escapeHtml(subject.subject_size)}</td><td>#${escapeHtml(result.class_position)} / ${escapeHtml(result.class_size)}</td></tr>`).join("") : `<tr><td colspan="6" class="empty">No scores found for this student.</td></tr>`;
+    body.innerHTML = result.subjects.length ? result.subjects.map(subject => `<tr><td>${escapeHtml(subject.name)}</td><td>${escapeHtml(subject.class_score)}</td><td>${escapeHtml(subject.exam_score)}</td><td>${escapeHtml(subject.average)}</td><td>#${escapeHtml(subject.position)} / ${escapeHtml(subject.subject_size)}</td></tr>`).join("") : `<tr><td colspan="5" class="empty">No scores found for this student.</td></tr>`;
     document.getElementById("reportStudentHeading").textContent = `${result.student.full_name} · ${result.class.name}`;
     document.getElementById("reportClassPosition").textContent = `Overall class position: #${result.class_position} of ${result.class_size}`;
+    document.getElementById("reportSummary").innerHTML = `<span>Academic report</span><strong>${escapeHtml(result.class.name)}</strong><span>Position</span><strong>#${escapeHtml(result.class_position)} of ${escapeHtml(result.class_size)}</strong>`;
+    document.getElementById("reportSummary").hidden = false;
     document.getElementById("reportMessage").textContent = "Report generated successfully.";
   }catch(error){ alert(error.message); }
 }

@@ -37,6 +37,8 @@ Set your Supabase URL and anon key in `.env`.
 
 Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` for the site login. The development defaults are `admin@sukladzi.local` and `admin123`; change them before deployment.
 
+Before handing the system to the school, run `sql/clear-test-data.sql` in the Supabase SQL Editor. This removes all test students, classes, subjects, scores, reports, fees and sessions while keeping the database structure.
+
 ## 3. Render
 
 Create a Web Service connected to this repository.

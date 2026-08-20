@@ -21,7 +21,7 @@
         <label>Password<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" required></label>
         <button class="primary login-button" type="submit">Sign in</button>
         <p id="loginMessage" class="login-message" role="alert"></p>
-        <small class="login-hint">Default site login: admin@sukladzi.local / admin123</small>
+        <small class="login-hint">Headmaster: headmaster@sukladzi.local / headmaster123<br>Administrator: admin@sukladzi.local / admin123</small>
       </form>
     </div>
   </section>
@@ -34,10 +34,10 @@
 
     <nav>
       <p class="nav-label">MAIN</p>
-      <button class="nav-item active" data-page="dashboard"><span>⌂</span> Dashboard</button>
+      <button class="nav-item active" data-page="dashboard" data-role="headmaster"><span>⌂</span> Dashboard</button>
 
       <p class="nav-label">SCHOOL</p>
-      <button class="nav-item" data-page="students"><span>♙</span> Students</button>
+      <button class="nav-item" data-page="students" data-role="headmaster"><span>♙</span> Students</button>
       <button class="nav-item" data-page="classes"><span>▦</span> Classes</button>
       <button class="nav-item" data-page="subjects"><span>▤</span> Subjects</button>
       <button class="nav-item" data-page="fees"><span>₵</span> School Fees</button>
@@ -47,9 +47,9 @@
       <button class="nav-item" data-page="reports"><span>▣</span> Reports</button>
 
       <p class="nav-label">ADMINISTRATION</p>
-      <button class="nav-item" data-page="sessions"><span>◷</span> Academic Sessions</button>
-      <button class="nav-item" data-page="staff"><span>♟</span> Staff & Admins</button>
-      <button class="nav-item" data-page="settings"><span>⚙</span> Settings</button>
+      <button class="nav-item" data-page="sessions" data-role="headmaster"><span>◷</span> Academic Sessions</button>
+      <button class="nav-item" data-page="staff" data-role="headmaster"><span>♟</span> Staff & Admins</button>
+      <button class="nav-item" data-page="settings" data-role="headmaster"><span>⚙</span> Settings</button>
     </nav>
 
     <div class="sidebar-bottom">
@@ -74,7 +74,7 @@
         <button class="icon-btn" data-action="notifications" aria-label="Notifications">🔔<i></i></button>
         <div class="profile">
           <div class="avatar">HM</div>
-          <div><strong>Headmaster</strong><span>Administrator</span></div>
+          <div><strong id="profileName">Headmaster</strong><span id="profileRole">Headmaster</span></div>
         </div>
       </div>
     </header>

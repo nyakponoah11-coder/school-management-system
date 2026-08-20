@@ -6,6 +6,8 @@ const loginForm = document.getElementById("loginForm");
 const appChrome = [document.querySelector(".sidebar"), document.querySelector(".main")];
 const inactivityLimit = 30 * 60 * 1000;
 let inactivityTimer;
+let currentRole = localStorage.getItem("school_role") || "headmaster";
+const administratorPages = new Set(["classes", "class-workspace", "subjects", "fees", "results", "reports"]);
 
 const titles = {
   dashboard:"Dashboard", students:"Students", classes:"Classes", "class-workspace":"Class Workspace", subjects:"Subjects", fees:"School Fees",
@@ -14,6 +16,9 @@ const titles = {
 };
 
 function showPage(name){
+  if(currentRole === "administrator" && !administratorPages.has(name)){
+    name = "classes";
+  }
   pages.forEach(p => p.classList.toggle("active", p.id === `page-${name}`));
   document.querySelectorAll(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.page === name));
   title.textContent = titles[name] || "Dashboard";
@@ -47,6 +52,8 @@ loginForm?.addEventListener("submit", async event => {
     const result = await res.json();
     if(!res.ok) throw new Error(result.error || "Unable to sign in");
     localStorage.setItem("school_logged_in", "true");
+    localStorage.setItem("school_role", result.user.role);
+    currentRole = result.user.role;
     showApp();
     loadDashboard();
   }catch(error){ message.textContent = error.message; }
@@ -56,6 +63,12 @@ loginForm?.addEventListener("submit", async event => {
 function showApp(){
   loginPage?.classList.add("app-hidden");
   appChrome.forEach(element => element?.classList.remove("app-hidden"));
+  document.querySelectorAll("[data-role]").forEach(element => {
+    element.hidden = element.dataset.role !== currentRole;
+  });
+  document.getElementById("profileName").textContent = currentRole === "headmaster" ? "Headmaster" : "Administrator";
+  document.getElementById("profileRole").textContent = currentRole === "headmaster" ? "Full access" : "Academic access";
+  if(currentRole === "administrator") showPage("classes");
   resetInactivityTimer();
 }
 
@@ -70,6 +83,7 @@ function resetInactivityTimer(){
   if(!localStorage.getItem("school_logged_in")) return;
   inactivityTimer = setTimeout(() => {
     localStorage.removeItem("school_logged_in");
+    localStorage.removeItem("school_role");
     showLogin();
     const message = document.getElementById("loginMessage");
     if(message) message.textContent = "Your session expired after 30 minutes of inactivity.";
@@ -85,6 +99,7 @@ async function handleAction(action, studentId, classId, target){
   if(action === "search"){ showPage("students"); document.querySelector(".search")?.focus(); return; }
   if(action === "sign-out"){
     localStorage.removeItem("school_logged_in");
+    localStorage.removeItem("school_role");
     showLogin();
     return;
   }

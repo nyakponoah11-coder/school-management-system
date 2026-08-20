@@ -44,12 +44,13 @@ app.post("/api/auth/login", async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ success: false, error: "Email and password are required." });
     }
-    const adminEmail = process.env.ADMIN_EMAIL || "admin@sukladzi.local";
-    const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
-    if (email !== adminEmail || password !== adminPassword) {
-      return res.status(401).json({ success: false, error: "Invalid email or password." });
-    }
-    res.json({ success: true, user: { email: adminEmail, role: "headmaster" } });
+    const accounts = [
+      { email: process.env.HEADMASTER_EMAIL || "headmaster@sukladzi.local", password: process.env.HEADMASTER_PASSWORD || "headmaster123", role: "headmaster" },
+      { email: process.env.ADMIN_EMAIL || "admin@sukladzi.local", password: process.env.ADMIN_PASSWORD || "admin123", role: "administrator" }
+    ];
+    const account = accounts.find(item => item.email === email && item.password === password);
+    if (!account) return res.status(401).json({ success: false, error: "Invalid email or password." });
+    res.json({ success: true, user: { email: account.email, role: account.role } });
   } catch (error) {
     res.status(401).json({ success: false, error: "Invalid email or password." });
   }

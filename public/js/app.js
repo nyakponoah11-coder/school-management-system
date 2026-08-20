@@ -44,7 +44,7 @@ loginForm?.addEventListener("submit", async event => {
     const res = await fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:document.getElementById("loginEmail").value.trim(), password:document.getElementById("loginPassword").value})});
     const result = await res.json();
     if(!res.ok) throw new Error(result.error || "Unable to sign in");
-    localStorage.setItem("school_access_token", result.session.access_token);
+    localStorage.setItem("school_logged_in", "true");
     showApp();
     loadDashboard();
   }catch(error){ message.textContent = error.message; }
@@ -65,7 +65,7 @@ async function handleAction(action, studentId, classId, target){
   if(!action) return;
   if(action === "search"){ showPage("students"); document.querySelector(".search")?.focus(); return; }
   if(action === "sign-out"){
-    localStorage.removeItem("school_access_token");
+    localStorage.removeItem("school_logged_in");
     showLogin();
     return;
   }
@@ -422,7 +422,7 @@ function escapeHtml(value){
   return String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 }
 
-if(localStorage.getItem("school_access_token")){
+if(localStorage.getItem("school_logged_in")){
   showApp();
   loadDashboard();
 }else{

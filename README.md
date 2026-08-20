@@ -35,6 +35,8 @@ npm start
 
 Set your Supabase URL and anon key in `.env`.
 
+Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` for the site login. The development defaults are `admin@sukladzi.local` and `admin123`; change them before deployment.
+
 ## 3. Render
 
 Create a Web Service connected to this repository.

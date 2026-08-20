@@ -44,9 +44,12 @@ app.post("/api/auth/login", async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ success: false, error: "Email and password are required." });
     }
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    res.json({ success: true, session: data.session, user: data.user });
+    const adminEmail = process.env.ADMIN_EMAIL || "admin@sukladzi.local";
+    const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+    if (email !== adminEmail || password !== adminPassword) {
+      return res.status(401).json({ success: false, error: "Invalid email or password." });
+    }
+    res.json({ success: true, user: { email: adminEmail, role: "headmaster" } });
   } catch (error) {
     res.status(401).json({ success: false, error: "Invalid email or password." });
   }

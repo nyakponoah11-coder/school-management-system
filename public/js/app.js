@@ -4,6 +4,8 @@ const title = document.getElementById("pageTitle");
 const loginPage = document.getElementById("loginPage");
 const loginForm = document.getElementById("loginForm");
 const appChrome = [document.querySelector(".sidebar"), document.querySelector(".main")];
+const inactivityLimit = 30 * 60 * 1000;
+let inactivityTimer;
 
 const titles = {
   dashboard:"Dashboard", students:"Students", classes:"Classes", "class-workspace":"Class Workspace", subjects:"Subjects", fees:"School Fees",
@@ -54,12 +56,29 @@ loginForm?.addEventListener("submit", async event => {
 function showApp(){
   loginPage?.classList.add("app-hidden");
   appChrome.forEach(element => element?.classList.remove("app-hidden"));
+  resetInactivityTimer();
 }
 
 function showLogin(){
   loginPage?.classList.remove("app-hidden");
   appChrome.forEach(element => element?.classList.add("app-hidden"));
+  clearTimeout(inactivityTimer);
 }
+
+function resetInactivityTimer(){
+  clearTimeout(inactivityTimer);
+  if(!localStorage.getItem("school_logged_in")) return;
+  inactivityTimer = setTimeout(() => {
+    localStorage.removeItem("school_logged_in");
+    showLogin();
+    const message = document.getElementById("loginMessage");
+    if(message) message.textContent = "Your session expired after 30 minutes of inactivity.";
+  }, inactivityLimit);
+}
+
+["click", "keydown", "mousemove", "scroll", "touchstart"].forEach(eventName => {
+  document.addEventListener(eventName, resetInactivityTimer, {passive:true});
+});
 
 async function handleAction(action, studentId, classId, target){
   if(!action) return;

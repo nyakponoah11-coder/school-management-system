@@ -6,21 +6,24 @@
 
 begin;
 
--- Delete dependent records first.
-delete from audit_logs;
-delete from report_cards;
-delete from scores;
-delete from fee_records;
-delete from enrollments;
-delete from subjects;
-delete from students;
-delete from semesters;
-delete from academic_sessions;
-delete from classes;
-delete from school_settings;
-delete from app_users;
+truncate table
+	audit_logs,
+	report_cards,
+	scores,
+	fee_records,
+	enrollments,
+	subjects,
+	students,
+	semesters,
+	academic_sessions,
+	classes,
+	school_settings,
+	app_users
+restart identity cascade;
 
 commit;
+
+select 'All school test data has been cleared.' as result;
 
 -- The system is now empty. Add the school's real classes, students,
 -- subjects, sessions and fees through the application.
